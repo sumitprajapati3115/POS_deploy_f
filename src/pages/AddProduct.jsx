@@ -57,46 +57,48 @@ function AddProduct() {
   };
 
   // Universal Print Function for Mobile & Laptop
-  const printBarcodeUniversal = (name, barcode) => {
-    if (isMobile) {
-      // Mobile → RawBT
-      const tspl = `
-      SIZE 50 mm,30 mm
-          GAP 2 mm,0 mm
-      CLS
-          TEXT 20,20,"0",0,1,1,"${name.substring(0,20)}"
-       BARCODE 20,60,"128",60,1,0,2,2,"${barcode}"
-          TEXT 20,140,"0",0,1,1,"${barcode}"
-       PRINT 1
-   `;
+ const printBarcodeUniversal = (name, barcode) => {
+  const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
 
-      const encoded = encodeURIComponent(tspl);
-      window.location.href = `intent:${encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
-    } else {
-      // Laptop → Normal print
-      const barcodeHTML = `
-      <html>
-      <body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:Arial">
-        <div style="text-align:center">
-          <p>${name}</p>
-          <img src="${baseUrl}/product/generateBarcode/${barcode}" />
-          <p>${barcode}</p>
-        </div>
-        <script>
-          window.onload=function(){
-            window.print();
-            window.close();
-          }
-        </script>
-      </body>
-      </html>
-      `;
-      const win = window.open("", "", "width=300,height=300");
-      win.document.write(barcodeHTML);
-      win.document.close();
-    }
-  };
+  if (isMobile) {
+    const tspl = `
+SIZE 50 mm,30 mm
+GAP 2 mm,0 mm
+CLS
+TEXT 20,20,"0",0,1,1,"${name.substring(0,20)}"
+BARCODE 20,60,"128",60,1,0,2,2,"${barcode}"
+TEXT 20,140,"0",0,1,1,"${barcode}"
+PRINT 1
+`;
 
+    const encoded = btoa(unescape(encodeURIComponent(tspl)));
+
+    // ✅ FIXED RAWBT CALL
+    window.location.href = `rawbt://print?data=${encoded}`;
+  } else {
+    // laptop print same
+    const html = `
+    <html>
+    <body style="display:flex;justify-content:center;align-items:center;height:100vh">
+      <div style="text-align:center">
+        <p>${name}</p>
+        <img src="${baseUrl}/product/generateBarcode/${barcode}" />
+        <p>${barcode}</p>
+      </div>
+      <script>
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => window.close(), 500);
+  }, 500);
+</script>
+    </body>
+    </html>
+    `;
+    const win = window.open("", "_blank");
+    win.document.write(html);
+    win.document.close();
+  }
+};
  const printBarcode = () => {
   const html = `
   <html>
