@@ -58,9 +58,10 @@ function AddProduct() {
 
   // Universal Print Function for Mobile & Laptop
  const printBarcodeUniversal = (name, barcode) => {
-  const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+  const isMobile = /Android/i.test(navigator.userAgent);
 
   if (isMobile) {
+    // ✅ RAW TEXT (NO BASE64 ❌)
     const tspl = `
 SIZE 50 mm,30 mm
 GAP 2 mm,0 mm
@@ -71,29 +72,28 @@ TEXT 20,140,"0",0,1,1,"${barcode}"
 PRINT 1
 `;
 
-    const encoded = btoa(unescape(encodeURIComponent(tspl)));
+    // ✅ IMPORTANT FIX
+    const url = "rawbt://print?text=" + encodeURIComponent(tspl);
 
-    // ✅ FIXED RAWBT CALL
-    window.location.href = `rawbt://print?data=${encoded}`;
+    window.location.href = url;
   } else {
-    // laptop print same
+    // 💻 Laptop print (same as before)
     const html = `
     <html>
-    <body style="display:flex;justify-content:center;align-items:center;height:100vh">
-      <div style="text-align:center">
-        <p>${name}</p>
-        <img src="${baseUrl}/product/generateBarcode/${barcode}" />
-        <p>${barcode}</p>
-      </div>
+    <body style="text-align:center">
+      <p>${name}</p>
+      <img src="${baseUrl}/product/generateBarcode/${barcode}" />
+      <p>${barcode}</p>
       <script>
-  setTimeout(() => {
-    window.print();
-    setTimeout(() => window.close(), 500);
-  }, 500);
-</script>
+        window.onload = function() {
+          window.print();
+          window.close();
+        }
+      </script>
     </body>
     </html>
     `;
+
     const win = window.open("", "_blank");
     win.document.write(html);
     win.document.close();

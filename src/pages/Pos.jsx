@@ -113,6 +113,7 @@ const generateBill = () => {
   const billHTML = `
   <html>
   <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <style>
       @page {
         size: 58mm auto;
@@ -165,17 +166,8 @@ const generateBill = () => {
         text-align: right;
       }
 
-      .summary td {
-        padding: 4px 0;
-      }
-
       .bold {
         font-weight: bold;
-      }
-
-      .footer {
-        margin-top: 8px;
-        font-size: 12px;
       }
     </style>
   </head>
@@ -208,7 +200,7 @@ const generateBill = () => {
 
     <div class="line"></div>
 
-    <table class="summary">
+    <table>
       <tr>
         <td>Subtotal</td>
         <td class="price">Rs ${subtotal}</td>
@@ -237,14 +229,14 @@ const generateBill = () => {
 
     <div class="line"></div>
 
-    <div class="footer">
-      Thank You! Visit Again
-    </div>
+    <p>Thank You! Visit Again</p>
 
     <script>
       window.onload = function() {
-        window.print();
-        setTimeout(() => window.close(), 500);
+        setTimeout(() => {
+          window.print();
+          window.close();
+        }, 300);
       }
     </script>
 
@@ -252,7 +244,7 @@ const generateBill = () => {
   </html>
   `;
 
-  const win = window.open("", "_blank");
+  const win = window.open("", "", "width=300,height=600");
   win.document.write(billHTML);
   win.document.close();
 };
