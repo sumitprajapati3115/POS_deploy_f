@@ -62,13 +62,13 @@ function AddProduct() {
       // Mobile → RawBT
       const tspl = `
       SIZE 50 mm,30 mm
-      GAP 2 mm,0 mm
+          GAP 2 mm,0 mm
       CLS
-      TEXT 20,20,"0",0,1,1,"${name ? name.substring(0,20) : ''}"
-      BARCODE 20,60,"128",60,1,0,2,2,"${safeBarcode}"
-      TEXT 20,140,"0",0,1,1,"${safeBarcode}"
-      PRINT 1
-`;
+          TEXT 20,20,"0",0,1,1,"${name.substring(0,20)}"
+       BARCODE 20,60,"128",60,1,0,2,2,"${barcode}"
+          TEXT 20,140,"0",0,1,1,"${barcode}"
+       PRINT 1
+   `;
 
       const encoded = encodeURIComponent(tspl);
       window.location.href = `intent:${encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
@@ -79,7 +79,7 @@ function AddProduct() {
       <body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:Arial">
         <div style="text-align:center">
           <p>${name}</p>
-          <img src="${safeBarcode !== "(NO BARCODE)" ? baseUrl + "/product/generateBarcode/" + safeBarcode : ''}" />
+          <img src="${baseUrl}/product/generateBarcode/${barcode}" />
           <p>${barcode}</p>
         </div>
         <script>
@@ -98,53 +98,80 @@ function AddProduct() {
   };
 
  const printBarcode = () => {
-  const barcodeHTML = `
+  const html = `
   <html>
   <head>
-  <style>
-  @media print {
-    body {
-      width: 58mm;
-      margin: 0;
-      text-align: center;
-      font-family: Arial;
-    }
-    img {
-      width: 100%;
-    }
-    p {
-      margin: 5px 0;
-    }
-  }
-  </style>
+    <style>
+      @page {
+        size: 58mm 35mm;   /* 🔥 fixed label size */
+        margin: 0;
+      }
+
+      body {
+        width: 58mm;
+        height: 35mm;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: monospace;
+      }
+
+      .box {
+        width: 100%;
+        text-align: center;
+      }
+
+      .name {
+        font-size: 11px;
+        margin-bottom: 3px;
+        word-break: break-word;
+      }
+
+      .barcode {
+        width: 180px;   /* 🔥 fixed width */
+        height: 60px;   /* 🔥 fixed height */
+        display: block;
+        margin: 0 auto; /* 🔥 center */
+      }
+
+      .code {
+        font-size: 11px;
+        margin-top: 3px;
+        letter-spacing: 1px;
+      }
+    </style>
   </head>
 
   <body>
 
-  <div>
-    <p>${product.name}</p>
+    <div class="box">
 
-    <img src="${baseUrl}/product/generateBarcode/${product.barcode}" />
+      <div class="name">
+        ${product.name.substring(0, 25)}
+      </div>
 
-    <p>${product.barcode}</p>
-  </div>
+      <img 
+        class="barcode"
+        src="${baseUrl}/product/generateBarcode/${product.barcode}"
+        onload="window.print(); setTimeout(()=>window.close(),500)"
+      />
 
-  <script>
-    window.onload = function() {
-      window.print();
-      window.close();
-    }
-  </script>
+      <div class="code">
+        ${product.barcode}
+      </div>
+
+    </div>
 
   </body>
   </html>
   `;
 
-  const win = window.open("", "", "width=300,height=400");
-  win.document.write(barcodeHTML);
+  const win = window.open("", "_blank");
+  win.document.write(html);
   win.document.close();
 };
-
+ 
   const printBarcodeOnly = () => {
     printBarcodeUniversal("", barcodeOnly);
   };
