@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import API from "../services/api";
 import baseUrl from "../services/baseUrl";
 import toast from "react-hot-toast";
@@ -26,6 +27,10 @@ function AddProduct() {
 
   const [showBarcode, setShowBarcode] = useState(false);
   const [barcodeOnly, setBarcodeOnly] = useState("");
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const editMode = Boolean(id);
+
   const [showBarcodeOnly, setShowBarcodeOnly] = useState(false);
 
   const handleChange = (e) => {
@@ -105,44 +110,81 @@ PRINT 1
 
     try {
       const finalPrice =
-        product.sellingPrice - (product.sellingPrice * product.discount) / 100;
+        Number(product.sellingPrice) -
+        (Number(product.sellingPrice) * Number(product.discount)) / 100;
 
       const payload = {
         ...product,
+        costPrice: Number(product.costPrice),
+        sellingPrice: Number(product.sellingPrice),
+        discount: Number(product.discount),
+        stockQuantity: Number(product.stockQuantity),
+        unit: Number(product.unit),
+        lowStockAlert: Number(product.lowStockAlert),
         finalPrice,
       };
 
-      await API.post("/product/addProduct", payload);
-
-      toast.success("Product Added Successfully");
-
-      setProduct({
-        name: "",
-        barcode: "",
-        category: "",
-        subCategory: "",
-        brand: "",
-        costPrice: "",
-        sellingPrice: "",
-        discount: "",
-        finalPrice: "",
-        stockQuantity: "",
-        expiryDate: "",
-        description: "",
-        unit: 1,
-        lowStockAlert: 5,
-      });
-
-      setShowBarcode(false);
+      if (editMode) {
+        await API.put(`/product/update/${id}`, payload);
+        toast.success("Product updated successfully");
+        navigate("/products");
+      } else {
+        await API.post("/product/addProduct", payload);
+        toast.success("Product added successfully");
+        setProduct({
+          name: "",
+          barcode: "",
+          category: "",
+          subCategory: "",
+          brand: "",
+          costPrice: "",
+          sellingPrice: "",
+          discount: "",
+          finalPrice: "",
+          stockQuantity: "",
+          expiryDate: "",
+          description: "",
+          unit: 1,
+          lowStockAlert: 5,
+        });
+        setShowBarcode(false);
+      }
     } catch (err) {
-      toast.error("Error adding product");
       console.log(err);
+      const message =
+        err.response?.data?.message || "Error saving product";
+      toast.error(message);
     }
   };
 
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (!editMode) return;
+
+      try {
+        const res = await API.get(`/product/get/${id}`);
+      const data = res.data.product;
+
+        setProduct({
+          ...data,
+          expiryDate: data.expiryDate
+            ? data.expiryDate.slice(0, 10)
+            : "",
+        });
+      } catch (error) {
+        console.error(error);
+        toast.error("Unable to load product details");
+      }
+    };
+
+    fetchProduct();
+  }, [editMode, id]);
+
   return (
     <div className="p-2 md:p-6 lg:p-8 bg-gray-100">
-      <h1 className="text-2xl md:text-3xl font-bold mb-6">Add Product</h1>
+      <h1 className="text-2xl md:text-3xl font-bold mb-6">
+        {editMode ? "Edit Product" : "Add Product"}
+      </h1>
 
       {/* Barcode Only Generator */}
       <div className="bg-white p-2 rounded shadow mb-6">
@@ -350,8 +392,17 @@ PRINT 1
             type="submit"
             className="bg-green-700 text-white px-6 py-2 rounded hover:bg-green-800 w-full sm:w-auto cursor-pointer"
           >
-            Add Product
+            {editMode ? "Update Product" : "Add Product"}
           </button>
+          {editMode && (
+            <button
+              type="button"
+              onClick={() => navigate("/products")}
+              className="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600 w-full sm:w-auto cursor-pointer"
+            >
+              Cancel
+            </button>
+          )}
         </div>
       </form>
 

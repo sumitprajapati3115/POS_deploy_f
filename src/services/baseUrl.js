@@ -1,4 +1,3 @@
-const baseUrl = "https://pos-b-zitv.onrender.com/api";
-// const baseUrl = "http://localhost:3000/api";
+const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 export default baseUrl;

@@ -39,27 +39,43 @@ export default function Dashboard() {
 
       {/* Stats Cards */}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {/* Daily Orders */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+        {/* Total Products */}
         <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg shadow">
-          <p className="text-blue-700 text-sm font-medium">Daily Orders</p>
+          <p className="text-blue-700 text-sm font-medium">Total Products</p>
           <h2 className="text-3xl font-bold text-blue-600">
+            {stats?.totalProducts}
+          </h2>
+        </div>
+
+        {/* Daily Orders */}
+        <div className="bg-cyan-50 border-l-4 border-cyan-500 p-6 rounded-lg shadow">
+          <p className="text-cyan-700 text-sm font-medium">Daily Orders</p>
+          <h2 className="text-3xl font-bold text-cyan-600">
             {stats?.dailyOrders}
           </h2>
         </div>
 
         {/* Products Sold */}
         <div className="bg-purple-50 border-l-4 border-purple-500 p-6 rounded-lg shadow">
-          <p className="text-purple-700 text-sm font-medium">Products Sold</p>
+          <p className="text-purple-700 text-sm font-medium">Products Sold Today</p>
           <h2 className="text-3xl font-bold text-purple-600">
             {stats?.totalProductsSold}
           </h2>
         </div>
 
-        {/* Revenue */}
+        {/* Total Revenue */}
         <div className="bg-green-50 border-l-4 border-green-500 p-6 rounded-lg shadow">
-          <p className="text-green-700 text-sm font-medium">Today's Revenue</p>
+          <p className="text-green-700 text-sm font-medium">Total Revenue</p>
           <h2 className="text-3xl font-bold text-green-600">
+            ₹{stats?.totalRevenue}
+          </h2>
+        </div>
+
+        {/* Today's Revenue */}
+        <div className="bg-emerald-50 border-l-4 border-emerald-500 p-6 rounded-lg shadow">
+          <p className="text-emerald-700 text-sm font-medium">Today's Revenue</p>
+          <h2 className="text-3xl font-bold text-emerald-600">
             ₹{stats?.todayRevenue}
           </h2>
         </div>

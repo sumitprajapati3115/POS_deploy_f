@@ -19,9 +19,26 @@ export default function Products() {
     try {
       const res = await API.get("/product/getAllProduct");
       setProducts(res.data);
-      console.log(products);
     } catch (error) {
       console.log(error);
+    }
+  };
+
+  const handleEdit = (id) => {
+    navigate(`/edit-product/${id}`);
+  };
+
+  const handleDelete = async (id) => {
+    const confirmed = window.confirm("Are you sure you want to delete this product?");
+    if (!confirmed) return;
+
+    try {
+      await API.delete(`/product/delete/${id}`);
+      toast.success("Product deleted successfully");
+      fetchProducts();
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to delete product");
     }
   };
 
@@ -183,7 +200,19 @@ PRINT
                     : "-"}
                 </td>
                 <td className="p-3">
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => handleEdit(p._id)}
+                      className="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 text-sm"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(p._id)}
+                      className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 text-sm"
+                    >
+                      Delete
+                    </button>
                     <button
                       onClick={() => printLabel(p, "TSPL")}
                       className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 text-sm"
