@@ -119,61 +119,63 @@ function POS() {
  
  <html>
  <head>
+ <html>
+ <head>
  <title>Receipt</title>
-
  <style>
-
  body{
   font-family: monospace;
   width:300px;
   margin:auto;
  }
-
  h2{
   text-align:center;
  }
-
  table{
   width:100%;
   border-collapse:collapse;
  }
-
  td{
   padding:4px 0;
  }
-
  .center{
   text-align:center;
  }
-
  .right{
   text-align:right;
  }
-
  hr{
   border-top:1px dashed black;
  }
-
  </style>
-
  </head>
-
  <body>
-
  <h2>PINWEB COSMETICS</h2>
-
  <p class="center">
  Lucknow, Uttar Pradesh<br>
  GSTIN: 09XXXXX1234Z5
  </p>
-
  <hr/>
-
  <table>
-
  <tr>
  <td>Item</td>
+ <td>Barcode</td>
  <td class="right">Qty</td>
+ <td class="right">Price</td>
+ </tr>
+ ${cart
+   .map(
+     (item) => `
+ <tr>
+ <td>${item.name}</td>
+ <td>${item.barcode && item.barcode !== "0" && item.barcode !== "0000000000000000" ? item.barcode : "-"}</td>
+ <td class="right">${item.qty}</td>
+ <td class="right">Rs ${item.sellingPrice * item.qty}</td>
+ </tr>
+ `,
+   )
+   .join("")}
+ </table>
  <td class="right">Price</td>
  </tr>
 

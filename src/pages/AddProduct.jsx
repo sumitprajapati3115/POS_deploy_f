@@ -61,13 +61,13 @@ function AddProduct() {
     if (isMobile) {
       // Mobile → RawBT
       const tspl = `
-SIZE 50 mm,30 mm
-GAP 2 mm,0 mm
-CLS
-TEXT 20,20,"0",0,1,1,"${name.substring(0,20)}"
-BARCODE 20,60,"128",60,1,0,2,2,"${barcode}"
-TEXT 20,140,"0",0,1,1,"${barcode}"
-PRINT 1
+      SIZE 50 mm,30 mm
+      GAP 2 mm,0 mm
+      CLS
+      TEXT 20,20,"0",0,1,1,"${name ? name.substring(0,20) : ''}"
+      BARCODE 20,60,"128",60,1,0,2,2,"${safeBarcode}"
+      TEXT 20,140,"0",0,1,1,"${safeBarcode}"
+      PRINT 1
 `;
 
       const encoded = encodeURIComponent(tspl);
@@ -79,7 +79,7 @@ PRINT 1
       <body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:Arial">
         <div style="text-align:center">
           <p>${name}</p>
-          <img src="${baseUrl}/product/generateBarcode/${barcode}" />
+          <img src="${safeBarcode !== "(NO BARCODE)" ? baseUrl + "/product/generateBarcode/" + safeBarcode : ''}" />
           <p>${barcode}</p>
         </div>
         <script>
