@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import toast from "react-hot-toast";
-import baseUrl from "../services/baseUrl";
 
 export default function Products() {
   const navigate = useNavigate();
@@ -58,52 +57,52 @@ export default function Products() {
 
   const categories = [...new Set(products.map((p) => p.category))];
 
- const printLabel = async (product, mode = "TSPL") => {
-  try {
-    let command = "";
+  const printLabel = async (product, mode = "TSPL") => {
+    try {
+      let command = "";
 
-    if (mode === "TSPL") {
-      command = `
+      if (mode === "TSPL") {
+        command = `
 SIZE 50 mm, 30 mm
-GAP 2 mm, 0 mm
 CLS
-TEXT 20,20,"0",0,1,1,"${product.name.substring(0,20)}"
-BARCODE 20,60,"128",60,1,0,2,2,"${product.barcode}"
-TEXT 20,140,"0",0,1,1,"${product.barcode}"
+TEXT 10,10,"2",0,1,1,"${product.name}"
+BARCODE 10,40,"128",50,1,0,2,2,"${product.barcode}"
+TEXT 10,100,"2",0,1,1,"₹${product.sellingPrice}"
 PRINT 1
 `;
-    } else {
-      command = `
+      } else if (mode === "CPCL") {
+        command = `
 ! 0 200 200 210 1
 TEXT 4 0 10 20 ${product.name}
-BARCODE 128 1 1 50 20 100 ${product.barcode}
-TEXT 4 0 10 140 ${product.barcode}
+BARCODE 128 1 1 20 20 100 ${product.barcode}
+TEXT 4 0 10 120 ₹${product.sellingPrice}
 PRINT
 `;
+      }
+
+      // Replace with your printer's IP address and port (usually 9100 for raw printing)
+      const printerIP = "192.168.1.100"; // Change this to your printer's IP
+      const printerPort = 9100;
+
+      const response = await fetch(`http://${printerIP}:${printerPort}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain",
+        },
+        body: command,
+      });
+
+      if (response.ok) {
+        toast.success("Label printed successfully!");
+      } else {
+        throw new Error("Failed to print");
+      }
+    } catch (error) {
+      console.error("Print error:", error);
+      toast.error("Failed to print label. Check printer connection.");
     }
+  };
 
-    const printerIP = "192.168.1.100"; // 👈 CHANGE THIS
-    const printerPort = 9100;
-
-    const response = await fetch(`http://${printerIP}:${printerPort}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/plain",
-      },
-      body: command,
-    });
-
-    if (response.ok) {
-      toast.success("Label Printed ✅");
-    } else {
-      throw new Error("Print failed");
-    }
-  } catch (error) {
-    console.error(error);
-    toast.error("Printer not connected ❌");
-  }
-};
-  
   return (
     <div className="p-4 md:p-6 lg:p-8 bg-gray-100 min-h-screen">
       {/* Header */}
@@ -214,11 +213,17 @@ PRINT
                     >
                       Delete
                     </button>
-                    
-                   <button
-                    onClick={() => printLabel(p)}
-                    className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 text-sm">
-                      Print Label
+                    <button
+                      onClick={() => printLabel(p, "TSPL")}
+                      className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 text-sm"
+                    >
+                      TSPL
+                    </button>
+                    <button
+                      onClick={() => printLabel(p, "CPCL")}
+                      className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 text-sm"
+                    >
+                      CPCL
                     </button>
                   </div>
                 </td>

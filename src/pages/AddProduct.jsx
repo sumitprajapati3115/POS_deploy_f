@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useState } from "react";
 import API from "../services/api";
 import baseUrl from "../services/baseUrl";
 import toast from "react-hot-toast";
@@ -27,10 +26,6 @@ function AddProduct() {
 
   const [showBarcode, setShowBarcode] = useState(false);
   const [barcodeOnly, setBarcodeOnly] = useState("");
-  const navigate = useNavigate();
-  const { id } = useParams();
-  const editMode = Boolean(id);
-
   const [showBarcodeOnly, setShowBarcodeOnly] = useState(false);
 
   const handleChange = (e) => {
@@ -57,12 +52,10 @@ function AddProduct() {
   };
 
   // Universal Print Function for Mobile & Laptop
- const printBarcodeUniversal = (name, barcode) => {
-  const isMobile = /Android/i.test(navigator.userAgent);
-
-  if (isMobile) {
-    // ✅ RAW TEXT (NO BASE64 ❌)
-    const tspl = `
+  const printBarcodeUniversal = (name, barcode) => {
+    if (isMobile) {
+      // Mobile → RawBT
+      const tspl = `
 SIZE 50 mm,30 mm
 GAP 2 mm,0 mm
 CLS
@@ -72,108 +65,37 @@ TEXT 20,140,"0",0,1,1,"${barcode}"
 PRINT 1
 `;
 
-    // ✅ IMPORTANT FIX
-    const url = "rawbt://print?text=" + encodeURIComponent(tspl);
+      const encoded = encodeURIComponent(tspl);
+      window.location.href = `intent:${encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+    } else {
+      // Laptop → Normal print
+      const barcodeHTML = `
+      <html>
+      <body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:Arial">
+        <div style="text-align:center">
+          <p>${name}</p>
+          <img src="${baseUrl}/product/generateBarcode/${barcode}" />
+          <p>${barcode}</p>
+        </div>
+        <script>
+          window.onload=function(){
+            window.print();
+            window.close();
+          }
+        </script>
+      </body>
+      </html>
+      `;
+      const win = window.open("", "", "width=300,height=300");
+      win.document.write(barcodeHTML);
+      win.document.close();
+    }
+  };
 
-    window.location.href = url;
-  } else {
-    // 💻 Laptop print (same as before)
-    const html = `
-    <html>
-    <body style="text-align:center">
-      <p>${name}</p>
-      <img src="${baseUrl}/product/generateBarcode/${barcode}" />
-      <p>${barcode}</p>
-      <script>
-        window.onload = function() {
-          window.print();
-          window.close();
-        }
-      </script>
-    </body>
-    </html>
-    `;
+  const printBarcode = () => {
+    printBarcodeUniversal(product.name, product.barcode);
+  };
 
-    const win = window.open("", "_blank");
-    win.document.write(html);
-    win.document.close();
-  }
-};
- const printBarcode = () => {
-  const html = `
-  <html>
-  <head>
-    <style>
-      @page {
-        size: 58mm 35mm;   /* 🔥 fixed label size */
-        margin: 0;
-      }
-
-      body {
-        width: 58mm;
-        height: 35mm;
-        margin: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-family: monospace;
-      }
-
-      .box {
-        width: 100%;
-        text-align: center;
-      }
-
-      .name {
-        font-size: 11px;
-        margin-bottom: 3px;
-        word-break: break-word;
-      }
-
-      .barcode {
-        width: 180px;   /* 🔥 fixed width */
-        height: 60px;   /* 🔥 fixed height */
-        display: block;
-        margin: 0 auto; /* 🔥 center */
-      }
-
-      .code {
-        font-size: 11px;
-        margin-top: 3px;
-        letter-spacing: 1px;
-      }
-    </style>
-  </head>
-
-  <body>
-
-    <div class="box">
-
-      <div class="name">
-        ${product.name.substring(0, 25)}
-      </div>
-
-      <img 
-        class="barcode"
-        src="${baseUrl}/product/generateBarcode/${product.barcode}"
-        onload="window.print(); setTimeout(()=>window.close(),500)"
-      />
-
-      <div class="code">
-        ${product.barcode}
-      </div>
-
-    </div>
-
-  </body>
-  </html>
-  `;
-
-  const win = window.open("", "_blank");
-  win.document.write(html);
-  win.document.close();
-};
- 
   const printBarcodeOnly = () => {
     printBarcodeUniversal("", barcodeOnly);
   };
@@ -183,81 +105,44 @@ PRINT 1
 
     try {
       const finalPrice =
-        Number(product.sellingPrice) -
-        (Number(product.sellingPrice) * Number(product.discount)) / 100;
+        product.sellingPrice - (product.sellingPrice * product.discount) / 100;
 
       const payload = {
         ...product,
-        costPrice: Number(product.costPrice),
-        sellingPrice: Number(product.sellingPrice),
-        discount: Number(product.discount),
-        stockQuantity: Number(product.stockQuantity),
-        unit: Number(product.unit),
-        lowStockAlert: Number(product.lowStockAlert),
         finalPrice,
       };
 
-      if (editMode) {
-        await API.put(`/product/update/${id}`, payload);
-        toast.success("Product updated successfully");
-        navigate("/products");
-      } else {
-        await API.post("/product/addProduct", payload);
-        toast.success("Product added successfully");
-        setProduct({
-          name: "",
-          barcode: "",
-          category: "",
-          subCategory: "",
-          brand: "",
-          costPrice: "",
-          sellingPrice: "",
-          discount: "",
-          finalPrice: "",
-          stockQuantity: "",
-          expiryDate: "",
-          description: "",
-          unit: 1,
-          lowStockAlert: 5,
-        });
-        setShowBarcode(false);
-      }
+      await API.post("/product/addProduct", payload);
+
+      toast.success("Product Added Successfully");
+
+      setProduct({
+        name: "",
+        barcode: "",
+        category: "",
+        subCategory: "",
+        brand: "",
+        costPrice: "",
+        sellingPrice: "",
+        discount: "",
+        finalPrice: "",
+        stockQuantity: "",
+        expiryDate: "",
+        description: "",
+        unit: 1,
+        lowStockAlert: 5,
+      });
+
+      setShowBarcode(false);
     } catch (err) {
+      toast.error("Error adding product");
       console.log(err);
-      const message =
-        err.response?.data?.message || "Error saving product";
-      toast.error(message);
     }
   };
 
-  useEffect(() => {
-    const fetchProduct = async () => {
-      if (!editMode) return;
-
-      try {
-        const res = await API.get(`/product/get/${id}`);
-      const data = res.data.product;
-
-        setProduct({
-          ...data,
-          expiryDate: data.expiryDate
-            ? data.expiryDate.slice(0, 10)
-            : "",
-        });
-      } catch (error) {
-        console.error(error);
-        toast.error("Unable to load product details");
-      }
-    };
-
-    fetchProduct();
-  }, [editMode, id]);
-
   return (
     <div className="p-2 md:p-6 lg:p-8 bg-gray-100">
-      <h1 className="text-2xl md:text-3xl font-bold mb-6">
-        {editMode ? "Edit Product" : "Add Product"}
-      </h1>
+      <h1 className="text-2xl md:text-3xl font-bold mb-6">Add Product</h1>
 
       {/* Barcode Only Generator */}
       <div className="bg-white p-2 rounded shadow mb-6">
@@ -465,17 +350,8 @@ PRINT 1
             type="submit"
             className="bg-green-700 text-white px-6 py-2 rounded hover:bg-green-800 w-full sm:w-auto cursor-pointer"
           >
-            {editMode ? "Update Product" : "Add Product"}
+            Add Product
           </button>
-          {editMode && (
-            <button
-              type="button"
-              onClick={() => navigate("/products")}
-              className="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600 w-full sm:w-auto cursor-pointer"
-            >
-              Cancel
-            </button>
-          )}
         </div>
       </form>
 
