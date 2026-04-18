@@ -4,9 +4,6 @@ import baseUrl from "../services/baseUrl";
 import toast from "react-hot-toast";
 
 function AddProduct() {
-  // Detect Mobile Device
-  const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-
   const [product, setProduct] = useState({
     name: "",
     barcode: "",
@@ -51,44 +48,51 @@ function AddProduct() {
     setShowBarcodeOnly(true);
   };
 
-  // Universal Print Function for Mobile & Laptop
+  // 🌟 UPDATE: Universal Print Function for Mobile & Laptop 🌟
+  // Ab TSPL commands ki zaroorat nahi hai, browser image print karega
   const printBarcodeUniversal = (name, barcode) => {
-    if (isMobile) {
-      // Mobile → RawBT
-      const tspl = `
-SIZE 50 mm,30 mm
-GAP 2 mm,0 mm
-CLS
-TEXT 20,20,"0",0,1,1,"${name.substring(0,20)}"
-BARCODE 20,60,"128",60,1,0,2,2,"${barcode}"
-TEXT 20,140,"0",0,1,1,"${barcode}"
-PRINT 1
-`;
-
-      const encoded = encodeURIComponent(tspl);
-      window.location.href = `intent:${encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
-    } else {
-      // Laptop → Normal print
-      const barcodeHTML = `
+    const barcodeHTML = `
       <html>
-      <body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:Arial">
-        <div style="text-align:center">
-          <p>${name}</p>
-          <img src="${baseUrl}/product/generateBarcode/${barcode}" />
+      <head>
+        <title>Print Barcode</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body { 
+            margin: 0; padding: 0; 
+            display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; 
+            font-family: Arial, sans-serif;
+            background-color: white;
+          }
+          .container { text-align: center; margin-top: 10px; }
+          h3 { margin: 0 0 5px 0; font-size: 16px; font-weight: bold; }
+          p { margin: 5px 0 0 0; font-size: 14px; }
+          img { max-width: 100%; height: auto; margin-top: 5px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h3>${name}</h3>
+          <img src="${baseUrl}/product/generateBarcode/${barcode}" alt="barcode" />
           <p>${barcode}</p>
         </div>
         <script>
-          window.onload=function(){
+          window.onload = function() {
             window.print();
-            window.close();
+            // Thoda delay dekar window close karein taaki print dialog load ho sake
+            setTimeout(function() { window.close(); }, 1500);
           }
         </script>
       </body>
       </html>
-      `;
-      const win = window.open("", "", "width=300,height=300");
+    `;
+
+    const win = window.open("", "_blank", "width=400,height=400");
+    if (win) {
       win.document.write(barcodeHTML);
       win.document.close();
+    } else {
+      alert("Please allow popups for this site to print barcodes.");
     }
   };
 
@@ -154,7 +158,7 @@ PRINT 1
             placeholder="Enter Barcode Number"
             value={barcodeOnly}
             onChange={(e) => setBarcodeOnly(e.target.value)}
-            className="input"
+            className="input border border-gray-300 p-2 rounded w-full sm:w-auto"
           />
 
           <button
@@ -197,7 +201,8 @@ PRINT 1
             name="name"
             value={product.name}
             onChange={handleChange}
-            className="input"
+            className="input border border-gray-300 p-2 rounded w-full"
+            required
           />
         </div>
 
@@ -210,7 +215,8 @@ PRINT 1
             name="barcode"
             value={product.barcode}
             onChange={handleChange}
-            className="input"
+            className="input border border-gray-300 p-2 rounded w-full"
+            required
           />
         </div>
 
@@ -221,7 +227,7 @@ PRINT 1
             name="category"
             value={product.category}
             onChange={handleChange}
-            className="input"
+            className="input border border-gray-300 p-2 rounded w-full"
           />
         </div>
 
@@ -232,7 +238,7 @@ PRINT 1
             name="subCategory"
             value={product.subCategory}
             onChange={handleChange}
-            className="input"
+            className="input border border-gray-300 p-2 rounded w-full"
           />
         </div>
 
@@ -243,7 +249,7 @@ PRINT 1
             name="brand"
             value={product.brand}
             onChange={handleChange}
-            className="input"
+            className="input border border-gray-300 p-2 rounded w-full"
           />
         </div>
 
@@ -257,7 +263,8 @@ PRINT 1
             name="costPrice"
             value={product.costPrice}
             onChange={handleChange}
-            className="input"
+            className="input border border-gray-300 p-2 rounded w-full"
+            required
           />
         </div>
 
@@ -271,7 +278,8 @@ PRINT 1
             name="sellingPrice"
             value={product.sellingPrice}
             onChange={handleChange}
-            className="input"
+            className="input border border-gray-300 p-2 rounded w-full"
+            required
           />
         </div>
 
@@ -283,7 +291,7 @@ PRINT 1
             name="discount"
             value={product.discount}
             onChange={handleChange}
-            className="input"
+            className="input border border-gray-300 p-2 rounded w-full"
           />
         </div>
 
@@ -297,7 +305,8 @@ PRINT 1
             name="stockQuantity"
             value={product.stockQuantity}
             onChange={handleChange}
-            className="input"
+            className="input border border-gray-300 p-2 rounded w-full"
+            required
           />
         </div>
 
@@ -309,7 +318,7 @@ PRINT 1
             name="expiryDate"
             value={product.expiryDate}
             onChange={handleChange}
-            className="input"
+            className="input border border-gray-300 p-2 rounded w-full"
           />
         </div>
 
@@ -321,7 +330,7 @@ PRINT 1
             name="lowStockAlert"
             value={product.lowStockAlert}
             onChange={handleChange}
-            className="input"
+            className="input border border-gray-300 p-2 rounded w-full"
           />
         </div>
 
@@ -332,7 +341,7 @@ PRINT 1
             name="description"
             value={product.description}
             onChange={handleChange}
-            className="input h-24"
+            className="input border border-gray-300 p-2 rounded w-full h-24"
           />
         </div>
 

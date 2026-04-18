@@ -1,7 +1,5 @@
-import { useState } from "react";
-import { useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import API from "../services/api";
-import jsPDF from "jspdf";
 
 function POS() {
   const typingTimeout = useRef(null);
@@ -71,6 +69,7 @@ function POS() {
       console.log(error);
     }
   };
+
   const createSale = async () => {
     try {
       const items = cart.map((item) => ({
@@ -84,7 +83,6 @@ function POS() {
       );
 
       const discountAmount = (subtotal * discount) / 100;
-
       const total = subtotal - discountAmount;
 
       await API.post("/sale/create", {
@@ -95,6 +93,7 @@ function POS() {
 
       console.log("Sale saved");
 
+      // Sale save hone ke baad bill generate hoga
       generateBill();
     } catch (error) {
       console.error(error);
@@ -108,140 +107,115 @@ function POS() {
     );
 
     const discountAmount = (subtotal * discount) / 100;
-
     const afterDiscount = subtotal - discountAmount;
-
     const gst = afterDiscount * 0;
-
     const total = afterDiscount + gst;
 
+    // 🌟 Thermal Printer (58mm) ke hisaab se CSS Update kar di gayi hai 🌟
     const billHTML = `
- 
- <html>
- <head>
- <title>Receipt</title>
+      <html>
+      <head>
+        <title>Receipt</title>
+        <style>
+          body {
+            font-family: monospace;
+            width: 100%;
+            max-width: 58mm; /* Printer ki exact width */
+            margin: 0 auto;
+            padding: 0;
+            font-size: 12px;
+            color: black;
+          }
+          h2 { text-align: center; font-size: 16px; margin-bottom: 2px; }
+          p { margin: 2px 0; font-size: 11px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+          td { padding: 3px 0; font-size: 12px; }
+          .center { text-align: center; }
+          .right { text-align: right; }
+          .left { text-align: left; }
+          hr { border-top: 1px dashed black; margin: 5px 0; border-bottom: none; }
+          
+          /* Print Dialog ke margins hatane ke liye */
+          @media print {
+            @page { margin: 0; }
+            body { margin: 0; padding: 2mm; }
+          }
+        </style>
+      </head>
+      <body>
 
- <style>
+        <h2>PINWEB COSMETICS</h2>
+        <p class="center">
+          Lucknow, Uttar Pradesh<br>
+          GSTIN: 09XXXXX1234Z5
+        </p>
+        <hr/>
 
- body{
-  font-family: monospace;
-  width:300px;
-  margin:auto;
- }
+        <table>
+          <tr>
+            <td class="left"><b>Item</b></td>
+            <td class="center"><b>Qty</b></td>
+            <td class="right"><b>Price</b></td>
+          </tr>
+          ${cart
+            .map(
+              (item) => `
+          <tr>
+            <td class="left">${item.name.substring(0, 15)}</td> <td class="center">${item.qty}</td>
+            <td class="right">Rs ${item.sellingPrice * item.qty}</td>
+          </tr>
+          `,
+            )
+            .join("")}
+        </table>
 
- h2{
-  text-align:center;
- }
+        <hr/>
 
- table{
-  width:100%;
-  border-collapse:collapse;
- }
+        <table>
+          <tr>
+            <td>Subtotal</td>
+            <td class="right">Rs ${subtotal}</td>
+          </tr>
+          <tr>
+            <td>Discount (${discount}%)</td>
+            <td class="right">- Rs ${discountAmount.toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td>After Discount</td>
+            <td class="right">Rs ${afterDiscount.toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td>Payment</td>
+            <td class="right">${paymentMethod.toUpperCase()}</td>
+          </tr>
+          <tr>
+            <td><b>Total</b></td>
+            <td class="right"><b>Rs ${total.toFixed(2)}</b></td>
+          </tr>
+        </table>
 
- td{
-  padding:4px 0;
- }
+        <hr/>
+        <p class="center">Thank You! Visit Again</p>
 
- .center{
-  text-align:center;
- }
+        <script>
+          window.onload = function() {
+            window.print();
+            setTimeout(function() { window.close(); }, 1000);
+          }
+        </script>
+      </body>
+      </html>
+    `;
 
- .right{
-  text-align:right;
- }
-
- hr{
-  border-top:1px dashed black;
- }
-
- </style>
-
- </head>
-
- <body>
-
- <h2>PINWEB COSMETICS</h2>
-
- <p class="center">
- Lucknow, Uttar Pradesh<br>
- GSTIN: 09XXXXX1234Z5
- </p>
-
- <hr/>
-
- <table>
-
- <tr>
- <td>Item</td>
- <td class="right">Qty</td>
- <td class="right">Price</td>
- </tr>
-
- ${cart
-   .map(
-     (item) => `
- <tr>
- <td>${item.name}</td>
- <td class="right">${item.qty}</td>
- <td class="right">Rs ${item.sellingPrice * item.qty}</td>
- </tr>
- `,
-   )
-   .join("")}
-
- </table>
-
- <hr/>
-
- <table>
-
- <tr>
-<td>Subtotal</td>
-<td class="right">Rs ${subtotal}</td>
-</tr>
-
-<tr>
-<td>Discount (${discount}%)</td>
-<td class="right">- Rs ${discountAmount.toFixed(2)}</td>
-</tr>
-
-<tr>
-<td>After Discount</td>
-<td class="right">Rs ${afterDiscount.toFixed(2)}</td>
-</tr>
-
-
-<tr>
-<td>Payment</td>
-<td class="right">${paymentMethod.toUpperCase()}</td>
-</tr>
-
-<tr>
-<td><b>Total</b></td>
-<td class="right"><b>Rs ${total.toFixed(2)}</b></td>
-</tr>
-
- </table>
-
- <hr/>
-
- <p class="center">
- Thank You! Visit Again
- </p>
-
- <script>
- window.print()
- </script>
-
- </body>
- </html>
-
- `;
-
-    const win = window.open("", "", "width=400,height=600");
-    win.document.write(billHTML);
-    win.document.close();
+    const win = window.open("", "_blank", "width=350,height=500");
+    if (win) {
+      win.document.write(billHTML);
+      win.document.close();
+    } else {
+      alert("Please allow popups to print the bill");
+    }
   };
+
   const increaseQty = (barcode) => {
     const updated = cart.map((item) => {
       if (item.barcode === barcode) {
@@ -249,13 +223,10 @@ function POS() {
           alert("Stock limit reached");
           return item;
         }
-
         return { ...item, qty: item.qty + 1 };
       }
-
       return item;
     });
-
     setCart(updated);
   };
 
@@ -271,7 +242,6 @@ function POS() {
 
   const removeItem = (barcode) => {
     const updated = cart.filter((item) => item.barcode !== barcode);
-
     setCart(updated);
   };
 
@@ -281,10 +251,8 @@ function POS() {
   );
 
   const discountAmount = (subtotal * discount) / 100;
-
   const total = subtotal - discountAmount;
 
- 
   return (
     <div className="min-h-screen bg-gray-100 p-2">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -340,7 +308,7 @@ function POS() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => decreaseQty(item.barcode)}
-                          className="bg-red-500 text-white px-2 rounded  cursor-pointer"
+                          className="bg-red-500 text-white px-2 rounded cursor-pointer"
                         >
                           -
                         </button>
@@ -349,7 +317,7 @@ function POS() {
 
                         <button
                           onClick={() => increaseQty(item.barcode)}
-                          className="bg-green-500 text-white px-2 rounded  cursor-pointer"
+                          className="bg-green-500 text-white px-2 rounded cursor-pointer"
                         >
                           +
                         </button>
@@ -399,15 +367,16 @@ function POS() {
 
             <div className="flex justify-between text-red-500">
               <span>Discount Amount</span>
-              <span>- ₹{discountAmount}</span>
+              <span>- ₹{discountAmount.toFixed(2)}</span>
             </div>
 
             <hr />
 
             <div className="flex justify-between text-lg font-bold">
               <span>Total</span>
-              <span>₹{total}</span>
+              <span>₹{total.toFixed(2)}</span>
             </div>
+            
             <div className="flex gap-3 mt-3">
               <button
                 onClick={() => setPaymentMethod("cash")}
@@ -444,12 +413,19 @@ function POS() {
             </div>
           </div>
 
-         <button onClick={() => {
-  createSale();
-  printBill();
-}} className="mt-6 w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg text-lg cursor-pointer">
-  Generate Bill
-</button>
+          {/* 🌟 Yahan siraf createSale() call karna hai 🌟 */}
+          <button
+            onClick={() => {
+              if (cart.length === 0) {
+                alert("Cart is empty!");
+                return;
+              }
+              createSale();
+            }}
+            className="mt-6 w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg text-lg cursor-pointer"
+          >
+            Generate Bill
+          </button>
         </div>
       </div>
     </div>
@@ -457,63 +433,3 @@ function POS() {
 }
 
 export default POS;
-
-//   const generateBill = () => {
-//     const doc = new jsPDF();
-
-//     let y = 20;
-
-//     doc.setFontSize(16);
-//     doc.text("My Cosmetic Shop", 80, y);
-
-//     y += 10;
-//     doc.setFontSize(10);
-//     doc.text("Lucknow, Uttar Pradesh", 80, y);
-
-//     y += 10;
-//     doc.text("Invoice", 95, y);
-
-//     y += 15;
-
-//     doc.text("Item", 20, y);
-//     doc.text("Qty", 100, y);
-//     doc.text("Price", 120, y);
-//     doc.text("Total", 160, y);
-
-//     y += 5;
-//     doc.line(20, y, 190, y);
-
-//     y += 10;
-
-//     cart.forEach((item) => {
-//       const itemTotal = item.price * item.qty;
-//       const gst = itemTotal * 0;
-
-//       doc.text(item.name, 20, y);
-//       doc.text(String(item.qty), 100, y);
-//       doc.text(`Rs. ${item.price}`, 120, y);
-//       doc.text(`Rs. ${itemTotal}`, 160, y);
-
-//       y += 10;
-//     });
-
-//     y += 10;
-//     doc.line(20, y, 190, y);
-
-//     y += 10;
-
-//     const subtotal = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
-//     const gstTotal = subtotal * 0;
-//     const grandTotal = subtotal + gstTotal;
-
-//     doc.text(`Subtotal: Rs. ${subtotal}`, 140, y);
-
-//     y += 10;
-//     doc.text(`GST (18%): Rs. ${gstTotal.toFixed(2)}`, 140, y);
-
-//     y += 10;
-//     doc.setFontSize(12);
-//     doc.text(`Total: Rs. ${grandTotal.toFixed(2)}`, 140, y);
-
-//     doc.save("bill.pdf");
-//   };
