@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
-import baseUrl from "../services/baseUrl"; // Barcode image ke liye baseUrl import karein
+import baseUrl from "../services/baseUrl";
 import toast from "react-hot-toast";
 
 export default function Products() {
@@ -45,75 +45,49 @@ export default function Products() {
     }
   };
 
-  // Filtering logic
   const filteredProducts = products.filter((p) => {
     const matchSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.barcode.includes(search);
-
     const matchCategory = category ? p.category === category : true;
-
     const matchLowStock = lowStock ? p.stockQuantity <= p.lowStockAlert : true;
-
     return matchSearch && matchCategory && matchLowStock;
   });
 
   const categories = [...new Set(products.map((p) => p.category))];
 
-  // 🌟 UPDATE: Yahan network IP fetch ki jagah HTML window print use hoga 🌟
-  const printLabel = (product) => {
-    const barcodeHTML = `
-      <html>
-      <head>
-        <title>Print Label</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-          body { 
-            margin: 0; padding: 0; 
-            display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; 
-            font-family: Arial, sans-serif;
-            background-color: white;
-            text-align: center;
-          }
-          .container { margin-top: 10px; }
-          h3 { margin: 0 0 5px 0; font-size: 16px; font-weight: bold; }
-          p { margin: 5px 0 0 0; font-size: 14px; font-weight: bold; }
-          img { max-width: 100%; height: auto; margin-top: 5px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <h3>${product.name.substring(0, 20)}</h3>
-          <img src="${baseUrl}/product/generateBarcode/${product.barcode}" alt="barcode" />
-          <p>${product.barcode}</p>
-          <p>Price: ₹${product.sellingPrice}</p>
-        </div>
-        <script>
-          window.onload = function() {
-            window.print();
-            setTimeout(function() { window.close(); }, 1500);
-          }
-        </script>
-      </body>
-      </html>
-    `;
+  // 🌟 FIX: Safe-Zone Cropping (Gap par cut nahi hoga, number hide hoga) 🌟
+// ✅ MOBILE PRINT (RawBT)
+const printLabel = (product) => {
+  if (!product?.barcode) {
+    toast.error("Barcode not found");
+    return;
+  }
 
-    const win = window.open("", "_blank", "width=400,height=400");
-    if (win) {
-      win.document.write(barcodeHTML);
-      win.document.close();
-    } else {
-      toast.error("Please allow popups to print barcodes.");
-    }
-  };
+  const cmd = `
+<CENTER>
+<BOLD>${product.name || "Product"}</BOLD>
 
+<BARCODE TYPE=128 HEIGHT=80 WIDTH=2>
+${product.barcode}
+</BARCODE>
+
+${product.barcode}
+
+Price: ₹${product.sellingPrice || ""}
+
+\n\n
+`;
+
+  const encoded = encodeURIComponent(cmd);
+
+  // RawBT app open karega
+  window.location.href = `rawbt://print?text=${encoded}`;
+};
   return (
     <div className="p-4 md:p-6 lg:p-8 bg-gray-100 min-h-screen">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h1 className="text-2xl md:text-3xl font-bold">Product Inventory</h1>
-
         <button
           onClick={() => navigate("/add-product")}
           className="bg-green-500 text-white px-5 py-2 rounded-lg hover:bg-green-600 w-full sm:w-auto cursor-pointer"
@@ -122,9 +96,7 @@ export default function Products() {
         </button>
       </div>
 
-      {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow mb-6 flex flex-col sm:flex-row flex-wrap gap-4 sm:items-center">
-        {/* Search */}
         <input
           type="text"
           placeholder="Search by name or barcode..."
@@ -133,20 +105,17 @@ export default function Products() {
           className="border p-2 rounded-md w-full sm:w-64 focus:ring-2 focus:ring-green-500"
         />
 
-        {/* Category Filter */}
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
           className="border p-2 rounded-md w-full sm:w-auto focus:ring-2 focus:ring-green-500"
         >
           <option value="">All Categories</option>
-
           {categories.map((cat) => (
             <option key={cat}>{cat}</option>
           ))}
         </select>
 
-        {/* Low Stock */}
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
@@ -158,7 +127,6 @@ export default function Products() {
         </label>
       </div>
 
-      {/* Product Table */}
       <div className="bg-white rounded-lg shadow overflow-x-auto">
         <table className="w-full min-w-[700px]">
           <thead className="bg-green-500 text-white">
@@ -215,8 +183,6 @@ export default function Products() {
                       >
                         Delete
                       </button>
-                      
-                      {/* Sirf ek Print Barcode button rakha hai */}
                       <button
                         onClick={() => printLabel(p)}
                         className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm cursor-pointer font-medium"

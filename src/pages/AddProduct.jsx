@@ -26,15 +26,18 @@ function AddProduct() {
   const [showBarcodeOnly, setShowBarcodeOnly] = useState(false);
 
   const handleChange = (e) => {
-    setProduct({
-      ...product,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const { name, value } = e.target;
+
+  setProduct({
+    ...product,
+    [name]:
+      e.target.type === "number" ? Number(value) : value,
+  });
+};
 
   const handleGenerateBarcode = () => {
-    if (!product.barcode) {
-      alert("Enter barcode first");
+    if (product.barcode.length < 6) {
+      toast.error("Enter barcode first");
       return;
     }
     setShowBarcode(true);
@@ -42,74 +45,56 @@ function AddProduct() {
 
   const generateBarcodeOnly = () => {
     if (!barcodeOnly) {
-      alert("Enter barcode number");
+      toast.error("Enter barcode number");
       return;
     }
     setShowBarcodeOnly(true);
   };
 
-  // 🌟 UPDATE: Universal Print Function for Mobile & Laptop 🌟
-  // Ab TSPL commands ki zaroorat nahi hai, browser image print karega
-  const printBarcodeUniversal = (name, barcode) => {
-    const barcodeHTML = `
-      <html>
-      <head>
-        <title>Print Barcode</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-          body { 
-            margin: 0; padding: 0; 
-            display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; 
-            font-family: Arial, sans-serif;
-            background-color: white;
-          }
-          .container { text-align: center; margin-top: 10px; }
-          h3 { margin: 0 0 5px 0; font-size: 16px; font-weight: bold; }
-          p { margin: 5px 0 0 0; font-size: 14px; }
-          img { max-width: 100%; height: auto; margin-top: 5px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <h3>${name}</h3>
-          <img src="${baseUrl}/product/generateBarcode/${barcode}" alt="barcode" />
-          <p>${barcode}</p>
-        </div>
-        <script>
-          window.onload = function() {
-            window.print();
-            // Thoda delay dekar window close karein taaki print dialog load ho sake
-            setTimeout(function() { window.close(); }, 1500);
-          }
-        </script>
-      </body>
-      </html>
-    `;
+// 🌟 ONLY BARCODE PRINT (50x30mm - PERFECT CENTER - LANDSCAPE) 🌟
+// ✅ MOBILE PRINT (RawBT)
+const printBarcodeMobile = (barcode) => {
+  if (!barcode) {
+    toast.error("Barcode required");
+    return;
+  }
 
-    const win = window.open("", "_blank", "width=400,height=400");
-    if (win) {
-      win.document.write(barcodeHTML);
-      win.document.close();
-    } else {
-      alert("Please allow popups for this site to print barcodes.");
-    }
-  };
+  const cmd = `
+<CENTER>
+<BOLD>My Store</BOLD>
 
-  const printBarcode = () => {
-    printBarcodeUniversal(product.name, product.barcode);
-  };
+<BARCODE TYPE=128 HEIGHT=80 WIDTH=2>
+${barcode}
+</BARCODE>
 
-  const printBarcodeOnly = () => {
-    printBarcodeUniversal("", barcodeOnly);
-  };
+${barcode}
 
+\n\n
+`;
+
+  const encoded = encodeURIComponent(cmd);
+
+  // RawBT open करेगा
+  window.location.href = `rawbt://print?text=${encoded}`;
+};
+
+// Product barcode print
+const printBarcode = () => {
+  printBarcodeMobile(product.barcode);
+};
+
+// Only barcode print
+const printBarcodeOnly = () => {
+  printBarcodeMobile(barcodeOnly);
+};
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      const finalPrice =
-        product.sellingPrice - (product.sellingPrice * product.discount) / 100;
+      const discount = product.discount || 0;
+
+const finalPrice =
+  product.sellingPrice - (product.sellingPrice * discount) / 100;
 
       const payload = {
         ...product,
@@ -145,11 +130,11 @@ function AddProduct() {
   };
 
   return (
-    <div className="p-2 md:p-6 lg:p-8 bg-gray-100">
+    <div className="p-2 md:p-6 lg:p-8 bg-gray-100 min-h-screen">
       <h1 className="text-2xl md:text-3xl font-bold mb-6">Add Product</h1>
 
       {/* Barcode Only Generator */}
-      <div className="bg-white p-2 rounded shadow mb-6">
+      <div className="bg-white p-4 md:p-6 rounded-lg shadow mb-6">
         <h2 className="text-xl font-semibold mb-4">Generate Barcode Only</h2>
 
         <div className="flex flex-col sm:flex-row gap-4 items-center">
@@ -157,13 +142,16 @@ function AddProduct() {
             type="text"
             placeholder="Enter Barcode Number"
             value={barcodeOnly}
-            onChange={(e) => setBarcodeOnly(e.target.value)}
-            className="input border border-gray-300 p-2 rounded w-full sm:w-auto"
+            onChange={(e) => {
+  const value = e.target.value.replace(/\D/g, "");
+  setBarcodeOnly(value);
+}}
+            className="input border border-gray-300 p-2 rounded w-full sm:w-auto focus:ring-2 focus:ring-blue-500 outline-none"
           />
 
           <button
             onClick={generateBarcodeOnly}
-            className="bg-blue-500 text-white px-5 py-2 rounded hover:bg-blue-600 cursor-pointer"
+            className="bg-blue-500 text-white px-5 py-2 rounded hover:bg-blue-600 cursor-pointer transition-colors"
           >
             Generate
           </button>
@@ -176,10 +164,10 @@ function AddProduct() {
               alt="barcode"
               className="mx-auto"
             />
-            <p>{barcodeOnly}</p>
+            <p className="mt-2 font-medium">{barcodeOnly}</p>
             <button
               onClick={printBarcodeOnly}
-              className="mt-3 bg-green-500 text-white px-5 py-2 rounded hover:bg-green-600"
+              className="mt-3 bg-green-500 text-white px-5 py-2 rounded hover:bg-green-600 transition-colors cursor-pointer"
             >
               Print Barcode
             </button>
@@ -201,7 +189,7 @@ function AddProduct() {
             name="name"
             value={product.name}
             onChange={handleChange}
-            className="input border border-gray-300 p-2 rounded w-full"
+            className="input border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-green-500 outline-none"
             required
           />
         </div>
@@ -212,10 +200,13 @@ function AddProduct() {
             Barcode<span className="text-red-500">*</span>
           </label>
           <input
-            name="barcode"
-            value={product.barcode}
-            onChange={handleChange}
-            className="input border border-gray-300 p-2 rounded w-full"
+  name="barcode"
+  value={product.barcode}
+  onChange={(e) => {
+    const value = e.target.value.replace(/\D/g, ""); // only numbers
+    setProduct({ ...product, barcode: value });
+  }}
+            className="input border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-green-500 outline-none"
             required
           />
         </div>
@@ -227,7 +218,7 @@ function AddProduct() {
             name="category"
             value={product.category}
             onChange={handleChange}
-            className="input border border-gray-300 p-2 rounded w-full"
+            className="input border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-green-500 outline-none"
           />
         </div>
 
@@ -238,7 +229,7 @@ function AddProduct() {
             name="subCategory"
             value={product.subCategory}
             onChange={handleChange}
-            className="input border border-gray-300 p-2 rounded w-full"
+            className="input border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-green-500 outline-none"
           />
         </div>
 
@@ -249,7 +240,7 @@ function AddProduct() {
             name="brand"
             value={product.brand}
             onChange={handleChange}
-            className="input border border-gray-300 p-2 rounded w-full"
+            className="input border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-green-500 outline-none"
           />
         </div>
 
@@ -263,7 +254,7 @@ function AddProduct() {
             name="costPrice"
             value={product.costPrice}
             onChange={handleChange}
-            className="input border border-gray-300 p-2 rounded w-full"
+            className="input border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-green-500 outline-none"
             required
           />
         </div>
@@ -278,7 +269,7 @@ function AddProduct() {
             name="sellingPrice"
             value={product.sellingPrice}
             onChange={handleChange}
-            className="input border border-gray-300 p-2 rounded w-full"
+            className="input border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-green-500 outline-none"
             required
           />
         </div>
@@ -291,7 +282,7 @@ function AddProduct() {
             name="discount"
             value={product.discount}
             onChange={handleChange}
-            className="input border border-gray-300 p-2 rounded w-full"
+            className="input border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-green-500 outline-none"
           />
         </div>
 
@@ -305,7 +296,7 @@ function AddProduct() {
             name="stockQuantity"
             value={product.stockQuantity}
             onChange={handleChange}
-            className="input border border-gray-300 p-2 rounded w-full"
+            className="input border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-green-500 outline-none"
             required
           />
         </div>
@@ -318,7 +309,7 @@ function AddProduct() {
             name="expiryDate"
             value={product.expiryDate}
             onChange={handleChange}
-            className="input border border-gray-300 p-2 rounded w-full"
+            className="input border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-green-500 outline-none"
           />
         </div>
 
@@ -330,7 +321,7 @@ function AddProduct() {
             name="lowStockAlert"
             value={product.lowStockAlert}
             onChange={handleChange}
-            className="input border border-gray-300 p-2 rounded w-full"
+            className="input border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-green-500 outline-none"
           />
         </div>
 
@@ -341,7 +332,7 @@ function AddProduct() {
             name="description"
             value={product.description}
             onChange={handleChange}
-            className="input border border-gray-300 p-2 rounded w-full h-24"
+            className="input border border-gray-300 p-2 rounded w-full h-24 focus:ring-2 focus:ring-green-500 outline-none"
           />
         </div>
 
@@ -350,14 +341,14 @@ function AddProduct() {
           <button
             type="button"
             onClick={handleGenerateBarcode}
-            className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 w-full sm:w-auto cursor-pointer"
+            className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 w-full sm:w-auto cursor-pointer transition-colors"
           >
             Generate Barcode
           </button>
 
           <button
             type="submit"
-            className="bg-green-700 text-white px-6 py-2 rounded hover:bg-green-800 w-full sm:w-auto cursor-pointer"
+            className="bg-green-700 text-white px-6 py-2 rounded hover:bg-green-800 w-full sm:w-auto cursor-pointer transition-colors"
           >
             Add Product
           </button>
@@ -366,18 +357,18 @@ function AddProduct() {
 
       {/* Barcode Preview */}
       {showBarcode && (
-        <div className="mt-8 bg-white p-6 shadow rounded text-center">
+        <div className="mt-8 bg-white p-6 shadow rounded-lg text-center">
           <h3 className="font-semibold mb-3">Generated Barcode</h3>
           <p className="font-medium">{product.name}</p>
           <img
             src={`${baseUrl}/product/generateBarcode/${product.barcode}`}
             alt="barcode"
-            className="mx-auto"
+            className="mx-auto mt-2"
           />
-          <p>{product.barcode}</p>
+          <p className="mt-2">{product.barcode}</p>
           <button
             onClick={printBarcode}
-            className="mt-4 bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600"
+            className="mt-4 bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 transition-colors cursor-pointer"
           >
             Print Barcode
           </button>
